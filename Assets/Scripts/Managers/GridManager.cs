@@ -40,8 +40,6 @@ namespace BOW.Managers {
             Cell oldCell = GetCellAtPosition(blockBehaviour.GetPositionX(), blockBehaviour.GetPositionY());
             Cell newCell = GetCellAtPosition(newX, newY);
 
-
-
             if (oldCell != null) oldCell.SetBlockOnCell(null);
             if (newCell != null) newCell.SetBlockOnCell(blockBehaviour.GetComponent<Block>());
 

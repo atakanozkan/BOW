@@ -259,9 +259,11 @@ MonoBehaviour:
   isPersistant: 1
   gridManager: {fileID: 921239292}
   spawnPosition: {fileID: 1694904043}
-  dropBlockSpeed: 1
-  fallBlockSpeed: 0.54
+  dropBlockSpeed: 1.3
+  fallBlockSpeed: 0.2
+  waitForMergeControlEnd: 0
   blockList: []
+  currentDropingBlock: {fileID: 0}
 --- !u!4 &226812276
 Transform:
   m_ObjectHideFlags: 0
@@ -1006,7 +1008,7 @@ MonoBehaviour:
   isPersistant: 1
   gridManager: {fileID: 921239292}
   blockManager: {fileID: 226812275}
-  currentGameState: 1
+  currentGameState: 512
 --- !u!4 &1850938140
 Transform:
   m_ObjectHideFlags: 0
