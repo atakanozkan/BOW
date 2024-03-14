@@ -1,18 +1,28 @@
 using System.Collections;
 using System.Collections.Generic;
 using BOW.Models;
+using TMPro;
 using UnityEngine;
 
 public abstract class Block : MonoBehaviour ,IMovable
 {
     [SerializeField]
     private BlockBehaviour blockBehaviour;
+
+    [SerializeField]
+    private TextMeshPro textMeshPro;
+
     public Sprite sprite;
     public int blockFallSpeed;
     public bool isFalling = false;
     public bool isDropping = true;
 
     public abstract void Fall();
+
+    public void SetBlockText(string text)
+    {
+        textMeshPro.text = text;
+    }
 
     public BlockBehaviour GetBlockBehaviour()
     {

@@ -41,7 +41,6 @@ namespace BOW.Managers
             }
             else if (Input.GetMouseButtonUp(0))
             {
-                Debug.Log("button up!");
                 isPressing = false;
             }
             Vector3 pos;
