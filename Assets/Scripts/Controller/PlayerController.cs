@@ -22,10 +22,9 @@ namespace BOW.Controllers {
 
         public void Update()
         {
-            if(GameManager.instance.currentGameState  == Helpers.GameState.Playing)
+            if(GameManager.instance.currentGameState  == Helpers.GameState.WaitingForDrop)
             {
                 DropBlock();
-                GameManager.instance.ChangeGameState(Helpers.GameState.BlockDrop);
             }
         }
 

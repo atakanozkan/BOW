@@ -37,6 +37,7 @@ namespace BOW.Managers
         public float fallBlockSpeed = 0.3f;
         public int waitForMergeControlEnd = 0;
         public List<Block> blockList = new List<Block>();
+        public Block currentDropingBlock;
 
         public void TriggerMergeControlOnStop(BlockBehaviour baseBlock, bool isFalling)
         {
@@ -53,32 +54,53 @@ namespace BOW.Managers
             return (int)(OnBlocksFall?.Invoke(blocks));
         }
 
-
-
-
-        public void ControlBlockMergeOnStop(BlockBehaviour block, bool isFalling)
+        private IEnumerator HandleGameplaySequence()
         {
-            StartCoroutine(CheckTheMovementStop());
+            bool changesMade;
+            do
+            {
+                yield return new WaitForSeconds(0.2f); // Buffer time before checks begin
+                changesMade = false;
 
-            bool foundMerge = block.FindMerge(blockList, gridManager.GetGridHeight(), gridManager.GetGridWidth());
-            if (!foundMerge)
-            {
-                Debug.Log("found no merge");
-                waitForMergeControlEnd--;
-                if (waitForMergeControlEnd <= 0)
+                yield return new WaitUntil(() => CheckAllBlocksStop());
+                currentDropingBlock = null;
+
+                while (FindAndHandleMerges())
                 {
-                    Debug.Log("check state change");
-                    StartCoroutine(CheckAndAdjustGameState());
+                    Debug.Log("Merge found and handled.");
+                    changesMade = true;
                 }
-            }
-            else
+
+                List<BlockBehaviour> behavioursToFall = blockList.Select(block => block.GetBlockBehaviour()).ToList();
+                int blocksThatWillFall = TriggerFall(behavioursToFall);
+
+                if (blocksThatWillFall > 0)
+                {
+                    yield return new WaitUntil(() => CheckAllBlocksStop());
+                    yield return new WaitForSeconds(0.1f); // Wait for fall animations
+                    changesMade = true;
+                }
+            } while (changesMade);
+
+            ResetRecentlyMovedBlocks();
+            GameManager.instance.ChangeGameState(Helpers.GameState.WaitingForDrop);
+        }
+
+        public void ResetRecentlyMovedBlocks()
+        {
+            foreach(Block block in blockList)
             {
-                waitForMergeControlEnd--;
+                block.GetBlockBehaviour().hasRecentlyMoved = false;
             }
         }
 
+
         public bool CheckAllBlocksStop()
         {
+            if(currentDropingBlock != null && (currentDropingBlock.isFalling || currentDropingBlock.isDropping))
+            {
+                return false;
+            }
             bool check = true;
 
             foreach (Block block in blockList)
@@ -92,34 +114,27 @@ namespace BOW.Managers
             return check;
         }
 
-        private IEnumerator CheckTheMovementStop() {
-            yield return new WaitUntil(()=>CheckAllBlocksStop());
-        }
 
-        public bool CheckAllBlocksIfMerge()
+        private bool FindAndHandleMerges()
         {
-            bool check = false;
+            bool mergeFound = false;
 
-            foreach (Block block in blockList)
+            var blocksCopyRecently = new List<Block>(blockList).Where(x => x.GetBlockBehaviour().hasRecentlyMoved).ToList();
+
+            foreach (var block in blocksCopyRecently)
             {
-                if (block.GetBlockBehaviour().SearchNeighborMatch(blockList, gridManager.GetGridHeight(), gridManager.GetGridWidth()).Count > 0)
+                var mergeResult = block.GetBlockBehaviour().FindMerge(blockList, gridManager.GetGridHeight(), gridManager.GetGridWidth());
+                if (mergeResult != null && mergeResult.Count > 0)
                 {
-                    check = true;
-                    break;
+                    TriggerMerge(block.GetBlockBehaviour(), mergeResult);
+                    mergeFound = true;
                 }
             }
-            return check;
+
+
+            return mergeFound;
         }
 
-        private IEnumerator CheckAndAdjustGameState()
-        {
-            yield return new WaitUntil(() => waitForMergeControlEnd <= 0);
-            if (!CheckAllBlocksIfMerge())
-            {
-                Debug.Log("not merge at all");
-                GameManager.instance.ChangeGameState(Helpers.GameState.Playing);
-            }
-        }
 
         private void HandleBlockMerge(BlockBehaviour baseBlock, List<BlockBehaviour> mergingBlocks)
         {
@@ -144,18 +159,7 @@ namespace BOW.Managers
                 block.SetBlockText(((NumberBlock)block).blockSize.ToString());
             }
 
-
             GameManager.instance.ChangeGameState(Helpers.GameState.BlockFall);
-            var blockBehaviourList = blockList.Select(block => block.GetBlockBehaviour()).ToList();
-
-
-            int fallBlockCount = TriggerFall(blockBehaviourList);
-
-            if(fallBlockCount == 0)
-            {
-                //waitForMergeControlEnd++;
-                ControlBlockMergeOnStop(baseBlock, false);
-            }
         }
 
 
@@ -170,31 +174,33 @@ namespace BOW.Managers
                 foreach (BlockBehaviour block in blocks)
                 {
                     int dropUnit = FindAmountFall(gridManager.GetGridHeight(), block.GetPositionY(), block.GetPositionX() + 1);
-                    if(dropUnit > 0)
+                    if(dropUnit > 0 && (dropUnit+ block.GetPositionX()) < gridManager.GetGridHeight())
                     {
+                        block.hasRecentlyMoved = true;
                         fallSequence.Append(block.FallBlock(dropUnit, block.GetPositionY(), fallBlockSpeed));
                         fallList.Add(block);
+                    }
+                    else
+                    {
+                        block.hasRecentlyMoved = false;
                     }
                 }
             }
 
-            fallSequence.Play().OnComplete(
-                () =>
-                {
-                    foreach(BlockBehaviour blockBehaviour in fallList)
-                    {
-                        Debug.Log("Check for merge after fall!");
-                        waitForMergeControlEnd++;
-                        GameManager.instance.GetBlockManager().TriggerMergeControlOnStop(blockBehaviour,false);
-                    }
-                }
-                );
+            fallSequence.Play();
 
             return fallList.Count();
         }
+
+
         private int FindAmountFall(int rowSize, int targetCol, int targetRow)
         {
             int counter = 0;
+
+            if(targetRow >= gridManager.GetGridHeight())
+            {
+                return 0;
+            }
 
             for (int row = targetRow; row < rowSize; row++)
             {
@@ -217,7 +223,8 @@ namespace BOW.Managers
 
             Block block = CreateDropBlock(spawnPoint,targetCol);
             BlockBehaviour blockBehaviour = block.GetBlockBehaviour();
-
+            currentDropingBlock = block;
+            blockBehaviour.hasRecentlyMoved = true;
             int dropUnit = FindAmountFall(gridManager.GetGridHeight(), targetCol, blockBehaviour.GetPositionX());
 
             if (dropUnit == 0) { return; } // TO DO : Implement gameOver
@@ -225,6 +232,7 @@ namespace BOW.Managers
             GameManager.instance.ChangeGameState(Helpers.GameState.BlockDrop);
             waitForMergeControlEnd++;
             blockBehaviour.DropBlock(dropUnit, targetCol, dropBlockSpeed);
+            StartCoroutine(HandleGameplaySequence());
         }
 
         public Block CreateDropBlock(Transform spawnPoint, int targetCol) //PLAYER
@@ -240,7 +248,7 @@ namespace BOW.Managers
                 spawnPoint.transform.position.z
                 );
 
-            int index = UnityEngine.Random.Range(0, 4);
+            int index = 1;
 
             int[] tuple = { 2, 4, 8, 16 };
 
@@ -270,14 +278,12 @@ namespace BOW.Managers
         {
             OnBlocksMerged += HandleBlockMerge;
             OnBlocksFall += FallBlocks;
-            OnBlockStopMove += ControlBlockMergeOnStop;
         }
 
         private void OnDisable()
         {
             OnBlocksMerged -= HandleBlockMerge;
             OnBlocksFall -= FallBlocks;
-            OnBlockStopMove -= ControlBlockMergeOnStop;
         }
 
 

@@ -15,5 +15,6 @@ namespace BOW.Helpers
         MergeAnimation = 64,
         BlockFall = 128,
         BlockDrop = 256,
+        WaitingForDrop  =512,
     }
 }
