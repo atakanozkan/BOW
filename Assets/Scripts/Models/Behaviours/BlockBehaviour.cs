@@ -37,20 +37,17 @@ namespace BOW.Models
             });
         }
 
-        public void FallBlock(int dropAmount, int targetCol, float duration)
+        public Tween FallBlock(int dropAmount, int targetCol, float duration)
         {
             Cell targetCell = GameManager.instance.GetGridManager().GetCellAtPosition(positionX + (dropAmount), targetCol);
             Vector3 endPosition = targetCell.transform.position;
             defaultBlock.isFalling = true;
 
-            transform.DOMove(endPosition, duration).SetEase(Ease.InQuad).OnComplete(() =>
+            return transform.DOMove(endPosition, duration).SetEase(Ease.InQuad).OnComplete(() =>
             {
                 GameManager.instance.GetGridManager().UpdateCellAndBlockPosition(this, positionX + (dropAmount), targetCol);
 
                 defaultBlock.isFalling = false;
-
-                GameManager.instance.GetBlockManager().TriggerMergeControlOnStop(defaultBlock.GetBlockBehaviour(),
-                    defaultBlock.isFalling);
             });
         }
 
@@ -69,28 +66,24 @@ namespace BOW.Models
 
         public List<BlockBehaviour> SearchNeighborMatch(List<Block> listBlocks, int borderX, int borderY)
         {
-            int borderDownX = (positionX - 1) < 0 ? 0 : (positionX - 1);
-            int borderUpX = (positionX + 1) >= borderX ? borderX-1 : (positionX + 1);
-            int borderRightY = (positionY + 1) >= borderY ? borderY-1 : (positionY + 1);
-            int borderLeftY = (positionY - 1) < 0 ? 0 : (positionY - 1);
+            matchNeighbors = new List<BlockBehaviour>();
 
-
-            if (defaultBlock == null)
+            int[][] neighborPositions = new int[][]
             {
-                Debug.LogError("Default block not found!");
-                return null;
-            }
-            matchNeighbors.Clear();
+                new int[] {positionX - 1, positionY}, // Up
+                new int[] {positionX + 1, positionY}, // Down
+                new int[] {positionX, positionY - 1}, // Left
+                new int[] {positionX, positionY + 1}  // Right
+            };
 
-            for (int x = borderDownX; x <= borderUpX; x++)
+            foreach (var pos in neighborPositions)
             {
-                for (int y = borderLeftY; y <= borderRightY; y++)
+                // Check if the neighbor position is within bounds
+                if (pos[0] >= 0 && pos[0] < borderX && pos[1] >= 0 && pos[1] < borderY)
                 {
-                    if (x == positionX && y == positionY) continue;
-
                     Block neighborBlock = listBlocks.Find(block =>
-                        block.GetBlockBehaviour().positionX == x &&
-                        block.GetBlockBehaviour().positionY == y &&
+                        block.GetBlockBehaviour().positionX == pos[0] &&
+                        block.GetBlockBehaviour().positionY == pos[1] &&
                         !block.GetBlockBehaviour().isMerged);
 
                     if (neighborBlock != null && neighborBlock is NumberBlock)
@@ -100,7 +93,6 @@ namespace BOW.Models
 
                         if (doesMatch)
                         {
-
                             matchNeighbors.Add(numberBlockNeighbor.GetBlockBehaviour());
                         }
                     }
@@ -110,9 +102,26 @@ namespace BOW.Models
             return matchNeighbors;
         }
 
-        public void ChangeBlockSize()
+        public void ResetBlockOnCell()
         {
+            if(GameManager.instance.GetGridManager() != null &&
+                GameManager.instance.GetGridManager().GetCellGridList() != null &&
+                GameManager.instance.GetGridManager().GetCellGridList().Count > 0
+                )
+            {
 
+                Cell cellAtPosition = GameManager.instance.GetGridManager().GetCellAtPosition(positionX, positionY);
+                Block blockOnCell = cellAtPosition.GetBlockOnCell();
+                if (defaultBlock == blockOnCell)
+                {
+                    GameManager.instance.GetGridManager().UpdateCellAndBlockPosition(null, positionX, positionY);
+                }
+                SetPoisitonX(0);
+                SetPoisitonY(0);
+                isMerged = false;
+                defaultBlock.isDropping = true;
+                defaultBlock.isFalling = false;
+            }
         }
 
         public void SetPoisitonX(int x)

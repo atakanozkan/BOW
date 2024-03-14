@@ -116,9 +116,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   blockBehaviour: {fileID: 268001447117419375}
+  textMeshPro: {fileID: 3428666981384454705}
   sprite: {fileID: 0}
   blockFallSpeed: 0
-  blockSize: 0
+  isFalling: 0
+  isDropping: 1
+  blockSize: 8
 --- !u!114 &268001447117419375
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -132,6 +135,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   defaultBlock: {fileID: -3029958790215245269}
+  positionX: 0
+  positionY: 0
   isMerged: 0
 --- !u!1 &1690406410629312166
 GameObject:
@@ -259,10 +264,10 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 36
-  m_fontSizeBase: 36
+  m_fontSize: 38.65
+  m_fontSizeBase: 26.1
   m_fontWeight: 400
-  m_enableAutoSizing: 0
+  m_enableAutoSizing: 1
   m_fontSizeMin: 18
   m_fontSizeMax: 72
   m_fontStyle: 0
