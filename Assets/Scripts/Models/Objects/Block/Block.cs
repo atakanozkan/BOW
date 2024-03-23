@@ -4,7 +4,7 @@ using BOW.Models;
 using TMPro;
 using UnityEngine;
 
-public abstract class Block : MonoBehaviour ,IMovable
+public abstract class Block : MonoBehaviour, IMovable
 {
     [SerializeField]
     private BlockBehaviour blockBehaviour;
@@ -12,12 +12,21 @@ public abstract class Block : MonoBehaviour ,IMovable
     [SerializeField]
     private TextMeshPro textMeshPro;
 
+    [SerializeField]
+    private SpriteRenderer spriteRenderer;
+
     public Sprite sprite;
     public int blockFallSpeed;
     public bool isFalling = false;
     public bool isDropping = true;
 
     public abstract void Fall();
+
+    public void SetSprite(Sprite sprite)
+    {
+        this.sprite = sprite;
+        spriteRenderer.sprite = this.sprite;
+    }
 
     public void SetBlockText(string text)
     {

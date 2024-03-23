@@ -21,13 +21,15 @@ namespace BOW.Models
 
         public bool isMerged = false;
 
-        public void DropBlock(int dropAmount,int targetCol, float duration)
+        public void DropBlock(int dropAmount, int targetCol, float duration)
         {
-            Cell targetCell  = GameManager.instance.GetGridManager().GetCellAtPosition(positionX+(dropAmount-1), targetCol);
+            Cell targetCell = GameManager.instance.GetGridManager().GetCellAtPosition(positionX + (dropAmount - 1), targetCol);
             Vector3 endPosition = targetCell.transform.position;
             defaultBlock.isDropping = true;
 
-            transform.DOMove(endPosition, duration).SetEase(Ease.InQuad).OnComplete(() =>
+            float calculatedDuration = ((float)dropAmount / (float)GameManager.instance.GetGridManager().GetGridHeight()) * duration;
+
+            transform.DOMove(endPosition, calculatedDuration).SetEase(Ease.InQuad).OnComplete(() =>
             {
                 GameManager.instance.GetGridManager().UpdateCellAndBlockPosition(this, positionX + (dropAmount - 1), targetCol);
                 GameManager.instance.GetBlockManager().AddBlockOnList(defaultBlock);
@@ -42,7 +44,9 @@ namespace BOW.Models
             Vector3 endPosition = targetCell.transform.position;
             defaultBlock.isFalling = true;
 
-            return transform.DOMove(endPosition, duration).SetEase(Ease.InQuad).OnComplete(() =>
+            float calculatedDuration = ((float)dropAmount / (float)GameManager.instance.GetGridManager().GetGridHeight()) * duration;
+
+            return transform.DOMove(endPosition, calculatedDuration).SetEase(Ease.InQuad).OnComplete(() =>
             {
                 GameManager.instance.GetGridManager().UpdateCellAndBlockPosition(this, positionX + (dropAmount), targetCol);
 
@@ -100,7 +104,7 @@ namespace BOW.Models
 
         public void ResetBlockOnCell()
         {
-            if(GameManager.instance.GetGridManager() != null &&
+            if (GameManager.instance.GetGridManager() != null &&
                 GameManager.instance.GetGridManager().GetCellGridList() != null &&
                 GameManager.instance.GetGridManager().GetCellGridList().Count > 0
                 )

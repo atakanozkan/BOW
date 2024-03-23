@@ -21,6 +21,7 @@ namespace BOW.Managers
         #region Serialized Field
         [SerializeField] private GridManager gridManager;
         [SerializeField] private GameObject spawnPosition;
+        [SerializeField] private List<Sprite> spriteList;
         #endregion
 
         public delegate void BlockMergeHandler(BlockBehaviour baseBlock, List<BlockBehaviour> mergingBlocks);
@@ -70,7 +71,6 @@ namespace BOW.Managers
                     Debug.Log("Merge found and handled.");
                     changesMade = true;
                 }
-
                 List<BlockBehaviour> behavioursToFall = blockList.Select(block => block.GetBlockBehaviour()).ToList();
                 int blocksThatWillFall = TriggerFall(behavioursToFall);
 
@@ -80,6 +80,7 @@ namespace BOW.Managers
                     yield return new WaitForSeconds(0.1f); // Wait for fall animations
                     changesMade = true;
                 }
+
             } while (changesMade);
 
             ResetRecentlyMovedBlocks();
@@ -88,7 +89,7 @@ namespace BOW.Managers
 
         public void ResetRecentlyMovedBlocks()
         {
-            foreach(Block block in blockList)
+            foreach (Block block in blockList)
             {
                 block.GetBlockBehaviour().hasRecentlyMoved = false;
             }
@@ -97,7 +98,7 @@ namespace BOW.Managers
 
         public bool CheckAllBlocksStop()
         {
-            if(currentDropingBlock != null && (currentDropingBlock.isFalling || currentDropingBlock.isDropping))
+            if (currentDropingBlock != null && (currentDropingBlock.isFalling || currentDropingBlock.isDropping))
             {
                 return false;
             }
@@ -157,12 +158,20 @@ namespace BOW.Managers
             {
                 ((NumberBlock)block).blockSize = ((NumberBlock)block).blockSize * ((int)Math.Pow(2, mergeCount));
                 block.SetBlockText(((NumberBlock)block).blockSize.ToString());
+                Debug.Log((int)(Math.Log(((NumberBlock)block).blockSize, 2)));
+                Debug.Log("sprite size: " + (spriteList.Count - 1));
+                int findSpriteIndex = (int)(Math.Log(((NumberBlock)block).blockSize, 2)) % (spriteList.Count - 1);
+                block.SetSprite(spriteList[findSpriteIndex]);
             }
-
+            //StartCoroutine(StartDelayAfterMerge());
             GameManager.instance.ChangeGameState(Helpers.GameState.BlockFall);
         }
 
-
+        public IEnumerator StartDelayAfterMerge()
+        {
+            yield return new WaitForSeconds(0.1f);
+            GameManager.instance.ChangeGameState(Helpers.GameState.BlockFall);
+        }
 
         public int FallBlocks(List<BlockBehaviour> blocks)
         {
@@ -174,7 +183,7 @@ namespace BOW.Managers
                 foreach (BlockBehaviour block in blocks)
                 {
                     int dropUnit = FindAmountFall(gridManager.GetGridHeight(), block.GetPositionY(), block.GetPositionX() + 1);
-                    if(dropUnit > 0 && (dropUnit+ block.GetPositionX()) < gridManager.GetGridHeight())
+                    if (dropUnit > 0 && (dropUnit + block.GetPositionX()) < gridManager.GetGridHeight())
                     {
                         block.hasRecentlyMoved = true;
                         fallSequence.Append(block.FallBlock(dropUnit, block.GetPositionY(), fallBlockSpeed));
@@ -197,7 +206,7 @@ namespace BOW.Managers
         {
             int counter = 0;
 
-            if(targetRow >= gridManager.GetGridHeight())
+            if (targetRow >= gridManager.GetGridHeight())
             {
                 return 0;
             }
@@ -221,7 +230,7 @@ namespace BOW.Managers
         {
 
 
-            Block block = CreateDropBlock(spawnPoint,targetCol);
+            Block block = CreateDropBlock(spawnPoint, targetCol);
             BlockBehaviour blockBehaviour = block.GetBlockBehaviour();
             currentDropingBlock = block;
             blockBehaviour.hasRecentlyMoved = true;
@@ -243,19 +252,21 @@ namespace BOW.Managers
             Cell cellInColumn = gridManager.GetCellAtPosition(block.GetBlockBehaviour().GetPositionX(), targetCol);
 
             Vector3 newSpawnPoint = new Vector3(
-                spawnPoint.transform.position.x,
-                cellInColumn.transform.position.y,
+                cellInColumn.transform.position.x,
+                spawnPoint.transform.position.y,
                 spawnPoint.transform.position.z
                 );
 
             int index = 1;
 
-            int[] tuple = { 2, 4, 8, 16 };
+            int[] tuple = { 2, 4, 8, 16, 32 };
 
-            if(block is NumberBlock)
+            if (block is NumberBlock)
             {
                 ((NumberBlock)block).blockSize = tuple[index];
                 block.SetBlockText(((NumberBlock)block).blockSize.ToString());
+                block.SetSprite(spriteList[index]);
+
             }
 
 
